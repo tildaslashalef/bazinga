@@ -1,0 +1,111 @@
+name: Automatic Release
+
+on:
+  push:
+    branches:
+      - main
+
+# Add permissions section here
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.4"
+          cache: true
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Run tests
+        run: make test-short
+
+      - name: Run linting (allow failures)
+        run: make lint || true
+
+      - name: Get version
+        id: get_version
+        run: |
+          # Extract version from git tag or use v0.0.0 as default
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+          # Increment patch version
+          BASE_VERSION=${LATEST_TAG#v}
+          IFS='.' read -ra VERSION_PARTS <<< "$BASE_VERSION"
+          MAJOR=${VERSION_PARTS[0]:-0}
+          MINOR=${VERSION_PARTS[1]:-0}
+          PATCH=${VERSION_PARTS[2]:-0}
+
+          # Increment patch version
+          PATCH=$((PATCH + 1))
+
+          NEW_VERSION="v$MAJOR.$MINOR.$PATCH"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $NEW_VERSION"
+
+      # Use Makefile's ci-release target instead of direct build commands
+      - name: Build cross-platform binaries
+        run: |
+          # Export the version for the Makefile to use
+          export VERSION="${{ steps.get_version.outputs.version }}"
+          make ci-release
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LATEST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" -n 10)
+          else
+            COMMITS=$(git log $LATEST_TAG..HEAD --pretty=format:"- %s (%h)")
+          fi
+
+          # If no commits found, get the last 10 commits
+          if [ -z "$COMMITS" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" -n 10)
+          fi
+
+          # Create changelog file
+          echo "## What's Changed" > changelog.md
+          echo "$COMMITS" >> changelog.md
+          echo "" >> changelog.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/commits/${{ github.sha }}" >> changelog.md
+
+          # Set output
+          CHANGELOG=$(cat changelog.md)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            bin/bazinga-linux-amd64
+            bin/bazinga-linux-arm64
+            bin/bazinga-darwin-amd64
+            bin/bazinga-darwin-arm64
+            bin/bazinga-windows-amd64.exe
+        env:
+          # You can use this line if the permissions section doesn't work
+          # GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,125 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters-settings:
+  # Errcheck settings
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+    exclude-functions:
+      - io/ioutil.ReadFile
+      - io.Copy(*bytes.Buffer)
+      - io.Copy(os.Stdout)
+
+  # Gocyclo settings - allow reasonable complexity
+  gocyclo:
+    min-complexity: 50
+
+  # Govet settings
+  govet:
+    settings:
+      printf:
+        funcs:
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+
+  # Revive settings - less strict than golint
+  revive:
+    min-confidence: 0
+    rules:
+      - name: exported
+        severity: warning
+        disabled: true  # Disable repetitive naming warnings
+
+  # Misspell settings
+  misspell:
+    locale: US
+
+  # Line length
+  lll:
+    line-length: 120
+
+linters:
+  disable-all: true
+  enable:
+    # Default Go tools
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    
+    # Additional useful linters 
+    - gocyclo        # Check function complexity
+    - misspell       # Fix spelling errors
+    - unconvert      # Remove unnecessary type conversions
+    - gofmt          # Check formatting
+    - revive         # Replacement for golint (less strict)
+    
+    # Optional but helpful
+    - nilerr         # Check for nil error returns
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-dirs:
+    - vendor
+    - testdata
+    - examples
+    - third_party
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - govet
+        
+    # Exclude known linters from partially hard-to-fix issues
+    - linters:
+        - errcheck
+      text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*print(f|ln)?|os\\.(Un)?Setenv). is not checked"
+      
+    # Exclude linters for vendor directories
+    - path: vendor/
+      linters:
+        - all
+        
+    # Disable certain warnings for main.go files (often have simple functions)
+    - path: cmd/
+      linters:
+        - gocyclo
+        
+    # Allow long lines in generated files
+    - path: ".*\\.pb\\.go"
+      linters:
+        - lll
+
+  # Show only new issues created in git patch with `git diff HEAD~1`
+  new: false
+  
+  # Maximum issues count per one linter. Set to 0 to disable
+  max-issues-per-linter: 0
+  
+  # Maximum count of issues with the same text. Set to 0 to disable
+  max-same-issues: 0
+  
+  # Unique by line
+  uniq-by-line: true
+
+# Output configuration
+output:
+  formats:
+    - format: colored-line-number
+      path: stdout
+  print-issued-lines: true
+  print-linter-name: true
