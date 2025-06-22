@@ -7,7 +7,7 @@
 
 ⚠️ **Disclaimer:** This is an experimental tool in early alpha stage. It's a fun side project intended for exploration and learning the LLMs workflows, not recommended for production environments. Use at your own risk.
 
-Bazinga is a terminal-based agentic coding assistant that brings the power of Large Language Models directly to your development workflow. Inspired by Claude Code but with its minimal yet great terminal-based UI, it provides intelligent project analysis, multi-provider LLM support, and a streamlined experience for developers.
+Bazinga is a Claude Code clone written in Go that brings the power of Large Language Models directly to your terminal development workflow. This agentic coding assistant provides intelligent project analysis, multi-provider LLM support, and a streamlined experience for developers. Fun fact: Claude Code itself was used to write this clone!
 
 
 
@@ -212,10 +212,6 @@ bazinga --provider ollama --model qwen2.5-coder:latest
 # Switch to Claude for complex reasoning
 /config provider anthropic
 ```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
