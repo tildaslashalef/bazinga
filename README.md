@@ -10,6 +10,7 @@
 Bazinga is a Claude Code clone written in Go that brings the power of Large Language Models directly to your terminal development workflow. This agentic coding assistant provides intelligent project analysis, multi-provider LLM support, and a streamlined experience for developers. Fun fact: Claude Code itself was used to write this clone!
 
 
+![Bazinga Screenshot](screenshot.png)
 
 ## ✨ Key Features
 
